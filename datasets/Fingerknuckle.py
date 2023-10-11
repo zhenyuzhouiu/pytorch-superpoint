@@ -12,14 +12,48 @@ from utils.utils import homography_scaling_torch as homography_scaling
 from utils.utils import filter_points
 
 
-class Coco(data.Dataset):
+def load_image(image_path, image_size, rgb=True):
+    """
+
+    Args:
+        image_path:
+        image_size: w x h
+        rgb: Ture: rgb; False: gray
+
+    Returns:
+        dst_img: [h, w, c]
+
+    """
+    image = cv2.imread(image_path, cv2.IMREAD_COLOR) if rgb else cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        return None
+    if image.ndim == 2:
+        image = np.expand_dims(image, -1)
+    h, w, c = image.shape
+    r = h / w
+    dst_w, dst_h = image_size
+    dst_r = dst_h / dst_w
+    if r > dst_r:  # crop h
+        crop_h = h - dst_r * w
+        image = image[int(crop_h / 2):int(h - crop_h / 2), :, :]
+    else:
+        crop_w = w - h / dst_r
+        image = image[:, int(crop_w / 2):int(w - crop_w / 2), :]
+
+    dst_image = cv2.resize(image, dsize=(dst_w, dst_h))
+    # dst_image = np.expand_dims(dst_image, -1) if dst_image.ndim == 2 else dst_image
+
+    return dst_image
+
+
+class Fingerknuckle(data.Dataset):
     default_config = {
         'labels': None,
         'cache_in_memory': False,
         'validation_size': 100,
         'truncate': None,
         'preprocessing': {
-            'resize': [240, 320]  # [height, width]
+            'resize': [200, 150]  # [height, width] default value [240, 320]
         },
         'num_parallel_calls': 10,
         'augmentation': {
@@ -56,7 +90,6 @@ class Coco(data.Dataset):
 
         # get files
         base_path = Path(DATA_PATH, 'COCO/' + task + '2014/')
-        # base_path = Path(DATA_PATH, 'COCO_small/' + task + '2014/')
         image_paths = list(base_path.iterdir())
         # if config['truncate']:
         #     image_paths = image_paths[:config['truncate']]
@@ -79,11 +112,6 @@ class Coco(data.Dataset):
                     sample = {'image': img, 'name': name, 'points': str(p)}
                     sequence_set.append(sample)
                     count += 1
-                # if count > 100:
-                #     print ("only load %d image!!!", count)
-                #     print ("only load one image!!!")
-                #     print ("only load one image!!!")
-                #     break
             pass
         else:
             for (img, name) in zip(files['image_paths'], files['names']):
@@ -165,11 +193,12 @@ class Coco(data.Dataset):
 
         def _read_image(path):
             cell = 8
-            input_image = cv2.imread(path)
-            # print(f"path: {path}, image: {image}")
-            # print(f"path: {path}, image: {input_image.shape}")
-            input_image = cv2.resize(input_image, (self.sizer[1], self.sizer[0]),
-                                     interpolation=cv2.INTER_AREA)
+            # input_image = cv2.imread(path) # print(f"path: {path}, image: {image}")
+            # print(f"path: {path},
+            # image: {input_image.shape}")
+            # input_image = cv2.resize(input_image, (self.sizer[1], self.sizer[0]),
+            # interpolation=cv2.INTER_AREA)  # this will change the image ratio with deformation
+            input_image = load_image(path, image_size=(self.sizer[1], self.sizer[0]), rgb=True)
             H, W = input_image.shape[0], input_image.shape[1]
             # H = H//cell*cell
             # W = W//cell*cell

@@ -23,15 +23,19 @@ from settings import EXPER_PATH
 ## loaders: data, model, pretrained model
 from utils.loader import dataLoader, modelLoader, pretrainedLoader
 from utils.logging import *
+
+
 # from models.model_wrap import SuperPointFrontend_torch, PointTracker
 
 ###### util functions ######
 def datasize(train_loader, config, tag='train'):
-    logging.info('== %s split size %d in %d batches'%\
-    (tag, len(train_loader)*config['model']['batch_size'], len(train_loader)))
+    logging.info('== %s split size %d in %d batches' % \
+                 (tag, len(train_loader) * config['model']['batch_size'], len(train_loader)))
     pass
 
+
 from utils.loader import get_save_path
+
 
 ###### util functions end ######
 
@@ -40,6 +44,7 @@ from utils.loader import get_save_path
 def train_base(config, output_dir, args):
     return train_joint(config, output_dir, args)
     pass
+
 
 # def train_joint_dsac():
 #     pass
@@ -52,14 +57,14 @@ def train_joint(config, output_dir, args):
     # from utils.utils import saveImg
     torch.set_default_tensor_type(torch.FloatTensor)
     task = config['data']['dataset']
-    
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info('train on device: %s', device)
     with open(os.path.join(output_dir, 'config.yml'), 'w') as f:
         yaml.dump(config, f, default_flow_style=False)
     # writer = SummaryWriter(getWriterPath(task=args.command, date=True))
-    writer = SummaryWriter(getWriterPath(task=args.command, 
-        exper_name=args.exper_name, date=True))
+    writer = SummaryWriter(getWriterPath(task=args.command,
+                                         exper_name=args.exper_name, date=True))
     ## save data
     save_path = get_save_path(output_dir)
 
@@ -92,9 +97,10 @@ def train_joint(config, output_dir, args):
         # train function takes care of training and evaluation
         train_agent.train()
     except KeyboardInterrupt:
-        print ("press ctrl + c, save model!")
+        print("press ctrl + c, save model!")
         train_agent.saveModel()
         pass
+
 
 if __name__ == '__main__':
     # global var
@@ -128,7 +134,7 @@ if __name__ == '__main__':
 
     if args.debug:
         logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s',
-                        datefmt='%m/%d/%Y %H:%M:%S', level=logging.DEBUG)
+                            datefmt='%m/%d/%Y %H:%M:%S', level=logging.DEBUG)
 
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
@@ -139,5 +145,3 @@ if __name__ == '__main__':
     # with capture_outputs(os.path.join(output_dir, 'log')):
     logging.info('Running command {}'.format(args.command.upper()))
     args.func(config, output_dir, args)
-
-

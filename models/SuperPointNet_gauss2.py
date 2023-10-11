@@ -8,9 +8,11 @@ from torch.nn.init import xavier_uniform_, zeros_
 from models.unet_parts import *
 import numpy as np
 
+
 # from models.SubpixelNet import SubpixelNet
 class SuperPointNet_gauss2(torch.nn.Module):
     """ Pytorch definition of SuperPoint Network. """
+
     def __init__(self, subpixel_channel=1):
         super(SuperPointNet_gauss2, self).__init__()
         c1, c2, c3, c4, c5, d1 = 64, 64, 128, 128, 256, 256
@@ -38,8 +40,6 @@ class SuperPointNet_gauss2(torch.nn.Module):
         self.bnDb = nn.BatchNorm2d(d1)
         self.output = None
 
-
-
     def forward(self, x):
         """ Forward pass that jointly computes unprocessed point and descriptor
         tensors.
@@ -62,8 +62,8 @@ class SuperPointNet_gauss2(torch.nn.Module):
         cDa = self.relu(self.bnDa(self.convDa(x4)))
         desc = self.bnDb(self.convDb(cDa))
 
-        dn = torch.norm(desc, p=2, dim=1) # Compute the norm.
-        desc = desc.div(torch.unsqueeze(dn, 1)) # Divide by norm to normalize.
+        dn = torch.norm(desc, p=2, dim=1)  # Compute the norm.
+        desc = desc.div(torch.unsqueeze(dn, 1))  # Divide by norm to normalize.
         output = {'semi': semi, 'desc': desc}
         self.output = output
 
@@ -84,7 +84,7 @@ class SuperPointNet_gauss2(torch.nn.Module):
         semi = output['semi']
         desc = output['desc']
         # flatten
-        heatmap = flattenDetection(semi) # [batch_size, 1, H, W]
+        heatmap = flattenDetection(semi)  # [batch_size, 1, H, W]
         # nms
         heatmap_nms_batch = sp_processer.heatmap_to_nms(heatmap, tensor=True)
         # extract offsets
@@ -129,29 +129,29 @@ def get_matches(deses_SP):
     # # pts_m_res = toNumpy(pts_m_res)
     # print("pts_m_res: ", pts_m_res.shape)
     # # print("pts_m_res: ", pts_m_res)
-        
+
     # pts_idx_res = torch.cat((pts_m, pts_m_res), dim=1)
     # print("pts_idx_res: ", pts_idx_res.shape)
+
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = SuperPointNet_gauss2()
     model = model.to(device)
 
-
     # check keras-like model summary using torchsummary
     from torchsummary import summary
     summary(model, input_size=(1, 240, 320))
 
     ## test
-    image = torch.zeros((2,1,120, 160))
+    image = torch.zeros((2, 1, 120, 160))
     outs = model(image.to(device))
     print("outs: ", list(outs))
 
     from utils.print_tool import print_dict_attr
     print_dict_attr(outs, 'shape')
 
-    from models.model_utils import SuperPointNet_process 
+    from models.model_utils import SuperPointNet_process
     params = {
         'out_num_points': 500,
         'patch_size': 5,
@@ -175,7 +175,7 @@ def main():
     for i in tqdm(range(iter_max)):
         outs = model(image.to(device))
     end = time.time()
-    print("forward only: ", iter_max/(end - start), " iter/s")
+    print("forward only: ", iter_max / (end - start), " iter/s")
 
     start = time.time()
     print("Start timer!")
@@ -187,18 +187,15 @@ def main():
         deses_SP.append(outs['pts_desc'].squeeze())
         reses_SP.append(outs['pts_offset'].squeeze())
     end = time.time()
-    print("forward + process output: ", iter_max/(end - start), " iter/s")
+    print("forward + process output: ", iter_max / (end - start), " iter/s")
 
     start = time.time()
     print("Start timer!")
     for i in tqdm(range(len(xs_SP))):
         get_matches([deses_SP[i][0], deses_SP[i][1]])
     end = time.time()
-    print("nn matches: ", iter_max/(end - start), " iters/s")
+    print("nn matches: ", iter_max / (end - start), " iters/s")
 
 
 if __name__ == '__main__':
     main()
-
-
-
